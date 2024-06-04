@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import sys
+import copy
 
 def run_simulation2(room_Z, room_X, windows, window_attraction_strength, window_length, num_particles, ac_repulsion_strength, animation_interval, animation_ON=True):
     threshold_particles = num_particles * 0.1  # 종료 기준 입자 수(%)
@@ -385,7 +386,7 @@ ac_repulsion_strength = 0.00  # 에어컨 밀어내는 힘의 세기 설정
 Data_Collection = False # 데이터 수집용 코드 / 일반 실행 코드 
 animation_ON = False # 애니메이션 ON/OFF
 #animation_ON = True # 애니메이션 ON/OFF
-num_random = 5 # 실행할 조합의 상한선 설정 
+num_random = 100 # 실행할 조합의 상한선 설정 
 
 #======================================================================================================================
 
@@ -415,7 +416,8 @@ file_path_modeling = "C:\\Users\\badag\\PJ_Algorithm\\base_model\\input_modeling
 
 # 빈 파일 생성
 with open(file_path_modeling, 'w', encoding='utf-8') as file_modeling:
-    file_modeling.write("") 
+    file_modeling.write(f"room_Z = {room_Z}\n") 
+    file_modeling.write(f"room_X = {room_X}\n")
 
 print(f"빈 파일이 {file_path_modeling}에 성공적으로 생성되었습니다.")
 
@@ -541,7 +543,7 @@ for combination in valid_window_combinations:
     }
     window_configurations.append(config)
 
-window_configurations_copy = window_configurations
+window_configurations_copy = copy.deepcopy(window_configurations)
     
 # 결과 출력
 print("\n창문 조합 구성 :")
@@ -554,9 +556,11 @@ for idx, config in enumerate(window_configurations, 1):
 # 랜덤으로 창문 조합 선택하여 windows_list에 저장
 random.seed(int(time.time()))  # 현재 시간으로 시드 설정
 if len(window_configurations) <= num_random:
-    windows_list = window_configurations
+    windows_list = copy.deepcopy(window_configurations)  # 딕셔너리 중첩 방지 값 복사
+    #print(windows_list)
 else:
-    windows_list = random.sample(window_configurations, num_random)
+    windows_list = random.sample(window_configurations, num_random) # 랜덤 시 독립된 리스트 생성
+    #print(windows_list)
 
 # 좌표 추가
 for config in windows_list:
@@ -564,6 +568,10 @@ for config in windows_list:
     config['top'] = [(w, room_X) for w in config['top']]
     config['right'] = [(room_Z, w) for w in config['right']]
     config['bottom'] = [(w, 0) for w in config['bottom']]
+
+# print("창문 조합 출력 용 : \n")
+# for config in windows_list:
+#     print(config)
 
 # 선택된 창문 조합 출력
 print("\n선택된 창문 조합 구성 :")
@@ -693,6 +701,7 @@ elif((Data_Collection == False) and (animation_ON == False)):
     # 마지막 창문 구성을 추가
     last_element = window_configurations[-1]
     top_n_configs.insert(0, (len(window_configurations), None, None))
+    #print("마지막 창문 위치 : ", last_element)
 
     # 서브플롯 설정
     rows = (n + 1) // 2  # 한 줄에 2개의 그래프를 배치한다고 가정
@@ -706,7 +715,10 @@ elif((Data_Collection == False) and (animation_ON == False)):
         ax = axs[i // 2, i % 2] if rows > 1 else axs[i % 2]  # 서브플롯이 1행인 경우 처리
         ax.set_xlim(0, room_Z)
         ax.set_ylim(0, room_X)
-        title = f"Config {config_idx}"
+        if(config_idx == len(window_configurations)):
+            title = f"ALL WINDOWS OPEN"
+        else:
+            title = f"Config {config_idx}"
         if time is not None:
             title += f" (Time: {time:.2f}s)"
         ax.set_title(title)
@@ -826,7 +838,10 @@ else:
         ax = axs[i // 2, i % 2] if rows > 1 else axs[i % 2]  # 서브플롯이 1행인 경우 처리
         ax.set_xlim(0, room_Z)
         ax.set_ylim(0, room_X)
-        title = f"Config {config_idx}"
+        if(config_idx == len(window_configurations)):
+            title = f"ALL WINDOWS OPEN"
+        else:
+            title = f"Config {config_idx}"
         if time is not None:
             title += f" (Time: {time:.2f}s)"
         ax.set_title(title)
@@ -894,10 +909,10 @@ else:
             print(f"창문 상태가 {file_path}에 성공적으로 작성되었습니다.")
         
         
-# rc_left = (rc_left[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
-# rc_top = (rc_top[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
-# rc_right = (rc_right[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
-# rc_bottom = (rc_bottom[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
+rc_left = (rc_left[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
+rc_top = (rc_top[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
+rc_right = (rc_right[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
+rc_bottom = (rc_bottom[:4] + [0] * 4)[:4]  # 4개의 원소로 맞추기
 
 with open(file_path_modeling, 'a', encoding='utf-8') as file_modeling:
     print("\n")
@@ -906,10 +921,10 @@ with open(file_path_modeling, 'a', encoding='utf-8') as file_modeling:
     print("rc_right: ", rc_right)
     print("rc_bottom: ", rc_bottom)
             
-    file_modeling.write(f"{rc_left}\n")
-    file_modeling.write(f"{rc_top}\n")
-    file_modeling.write(f"{rc_right}\n")
-    file_modeling.write(f"{rc_bottom}\n")
+    file_modeling.write(f"window_left = {rc_left}\n")
+    file_modeling.write(f"window_top = {rc_top}\n")
+    file_modeling.write(f"window_right = {rc_right}\n")
+    file_modeling.write(f"window_bottom = {rc_bottom}\n")
             
     print(f"창문 상태가 {file_path_modeling}에 성공적으로 작성되었습니다.")
 
