@@ -11,8 +11,9 @@ rc('font', family=font_name)
 # 마이너스 기호 깨짐 문제 해결
 plt.rcParams['axes.unicode_minus'] = False
 
+#============================================================================================================================
 # 데이터 파일 로드
-file_path = 'simulation_results_with_parameters.csv'
+file_path = 'simulation_results_with_parameters_test.csv'
 df = pd.read_csv(file_path)
 
 # 열 이름의 공백 제거
@@ -36,7 +37,7 @@ min_time = grouped[exact_column_name].min()
 max_time = grouped[exact_column_name].max()
 grouped['Score'] = 100 * (1 - (grouped[exact_column_name] - min_time) / (max_time - min_time))
 
-# 점수를 기준으로 정렬된 데이터프레임
+# 점수를 기준으로 정렬된 데이터프레임 생성
 sorted_scores = grouped.sort_values(by='Score', ascending=False)
 
 # 점수를 기준으로 정렬된 데이터프레임을 CSV 파일로 저장
@@ -62,7 +63,7 @@ combined_scores = pd.DataFrame({
 combined_scores = combined_scores.round({'Top Average Time (s)': 2, 'Top Score': 2, 'Bottom Average Time (s)': 2, 'Bottom Score': 2})
 
 # subplot을 사용하여 모든 그래프를 2x2 레이아웃으로 그리기
-fig, axs = plt.subplots(2, 2, figsize=(15, 15))  # 각 플롯의 크기를 줄임
+fig, axs = plt.subplots(2, 2, figsize=(15, 15))  # 각 플롯의 크기를 적절히 줄임
 
 # 각 조합 번호에 대한 평균 탈출 시간 분포를 나타내는 박스 플롯 그리기
 sns.boxplot(x='Combination Number', y=exact_column_name, data=df_sorted, ax=axs[0, 0])
@@ -88,7 +89,7 @@ axs[1, 0].set_xlabel('조합 번호')
 axs[1, 0].set_ylabel('평균 탈출 시간 (초)')
 axs[1, 0].tick_params(axis='x', rotation=90)
 
-# 빈 공간으로 남기기
+# 남은 공간은 빈 곳으로 남기기
 axs[1, 1].axis('off')
 
 plt.tight_layout()
@@ -98,13 +99,66 @@ combined_plot_path = 'combined_plots_2x2.png'
 plt.savefig(combined_plot_path)
 
 # 플롯 표시
-plt.show()
+#plt.show()
 
 print(f'Combined plot saved to: {combined_plot_path}')
 
-# 창문 그리기 코드
-import pandas as pd
-import matplotlib.pyplot as plt
+#============================================================================================================================
+# 창문 그리기 함수
+def draw_window_configuration(ax, configuration_number):
+    config = df.iloc[configuration_number - 1].to_dict()
+    print(f"Configuration {configuration_number}: {config}")  # 선택된 구성 출력
+
+    ax.set_xlim(0, room_Z)
+    ax.set_ylim(0, room_X)
+
+    # 방의 경계 그리기
+    rect = plt.Rectangle((0, 0), room_Z, room_X, linewidth=1, edgecolor='black', facecolor='none')
+    ax.add_patch(rect)
+
+    # 마지막 조합을 회색 박스로 먼저 그리기
+    for side, coords in last_config.items():
+        for coord in coords:
+            #print(coord[0])
+            if side == 'left':
+                rect = plt.Rectangle((0, coord[0]), 0.1, window_length, color='grey')
+            elif side == 'top':
+                rect = plt.Rectangle((coord[0], room_X - 0.1), window_length, 0.1, color='grey')
+            elif side == 'right':
+                rect = plt.Rectangle((room_Z - 0.1, room_X - coord[1] - window_length), 0.1, window_length, color='grey')
+            elif side == 'bottom':
+                rect = plt.Rectangle((coord[0], 0), window_length, 0.1, color='grey')
+            ax.add_patch(rect)
+
+    # 선택된 조합을 빨간색 박스로 그리기
+    for side, coords in config.items():
+        for coord in coords:
+            print(coord)
+            if side == 'left':
+                rect = plt.Rectangle((0, coord[0]), 0.1, window_length, color='red')
+            elif side == 'top':
+                rect = plt.Rectangle((coord[0], room_X - 0.1), window_length, 0.1, color='red')
+            elif side == 'right':
+                rect = plt.Rectangle((room_Z - 0.1, room_X - coord[1] - window_length), 0.1, window_length, color='red')
+            elif side == 'bottom':
+                rect = plt.Rectangle((coord[0], 0), window_length, 0.1, color='red')
+            ax.add_patch(rect)
+
+    ax.set_aspect('equal', adjustable='box')
+
+# 좌표를 튜플 형태로 변환
+def parse_coordinates(coord_str):
+    try:
+        coords = eval(coord_str)
+        if isinstance(coords, tuple):
+            return [coords]
+        elif isinstance(coords, list):
+            return [tuple(c) for c in coords]
+        else:
+            return []
+    except Exception as e:
+        print(f"Error parsing coordinates: {e}")
+        return []
 
 # 파일에서 room_Z와 room_X 값 읽기
 file_path = 'C:\\Users\\badag\\PJ_Algorithm\\base_model\\input_Lidar.txt'
@@ -121,20 +175,6 @@ for line in lines:
 # CSV 파일에서 창문 조합 읽기
 df = pd.read_csv('window_configurations.csv')
 
-# 좌표를 튜플 형태로 변환
-def parse_coordinates(coord_str):
-    try:
-        coords = eval(coord_str)
-        if isinstance(coords, tuple):
-            return [coords]
-        elif isinstance(coords, list):
-            return [tuple(c) for c in coords]
-        else:
-            return []
-    except Exception as e:
-        print(f"Error parsing coordinates: {e}")
-        return []
-
 for column in ['left', 'top', 'right', 'bottom']:
     df[column] = df[column].apply(parse_coordinates)
 
@@ -145,45 +185,6 @@ window_length = 1
 
 # 마지막 조합 저장
 last_config = df.iloc[-1].to_dict()
-
-def draw_window_configuration(ax, configuration_number):
-    config = df.iloc[configuration_number - 1].to_dict()
-    print(f"Configuration {configuration_number}: {config}")  # 선택된 구성 출력
-
-    ax.set_xlim(0, room_Z)
-    ax.set_ylim(0, room_X)
-
-    # 방의 경계 그리기
-    rect = plt.Rectangle((0, 0), room_Z, room_X, linewidth=1, edgecolor='black', facecolor='none')
-    ax.add_patch(rect)
-
-    # 마지막 조합을 회색 박스로 먼저 그리기
-    for side, coords in last_config.items():
-        for coord in coords:
-            if side == 'left':
-                rect = plt.Rectangle((0, coord[0]), 0.1, window_length, color='grey')
-            elif side == 'top':
-                rect = plt.Rectangle((coord[0], room_X - 0.1), window_length, 0.1, color='grey')
-            elif side == 'right':
-                rect = plt.Rectangle((room_Z - 0.1, room_X - coord[1] - window_length), 0.1, window_length, color='grey')
-            elif side == 'bottom':
-                rect = plt.Rectangle((coord[0], 0), window_length, 0.1, color='grey')
-            ax.add_patch(rect)
-
-    # 선택된 조합을 빨간색 박스로 그리기
-    for side, coords in config.items():
-        for coord in coords:
-            if side == 'left':
-                rect = plt.Rectangle((0, coord[0]), 0.1, window_length, color='red')
-            elif side == 'top':
-                rect = plt.Rectangle((coord[0], room_X - 0.1), window_length, 0.1, color='red')
-            elif side == 'right':
-                rect = plt.Rectangle((room_Z - 0.1, room_X - coord[1] - window_length), 0.1, window_length, color='red')
-            elif side == 'bottom':
-                rect = plt.Rectangle((coord[0], 0), window_length, 0.1, color='red')
-            ax.add_patch(rect)
-
-    ax.set_aspect('equal', adjustable='box')
 
 # 상위 4개의 조합 번호와 하위 4개의 조합 번호 가져오기
 top_4_combinations = top_20['Combination Number'].values[:4]
@@ -202,11 +203,12 @@ for i, combination in enumerate(bottom_4_combinations):
     draw_window_configuration(axs[1, i], combination)
     axs[1, i].set_title(f'Bottom {i+1} Combination')
 
-plt.tight_layout()
-plt.show()
+plt.tight_layout() # 서브플롯(subplot) 간의 간격 조정
 
 # 플롯을 파일로 저장
 window_plot_path = 'top_bottom_4_combinations.png'
 plt.savefig(window_plot_path)
 
 print(f'Window plot saved to: {window_plot_path}')
+
+plt.show()
